@@ -80,10 +80,10 @@ class Rook extends Piece {
   getPossibleMoves(board) {
     const moves = [];
     const directions = [
-      { dx: 0, dy: 1 }, // вниз
-      { dx: 0, dy: -1 }, // вверх
-      { dx: 1, dy: 0 }, // вправо
-      { dx: -1, dy: 0 }, // влево
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: -1 },
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 0 },
     ];
 
     directions.forEach((dir) => {
@@ -146,10 +146,10 @@ class Bishop extends Piece {
   getPossibleMoves(board) {
     const moves = [];
     const directions = [
-      { dx: 1, dy: 1 }, // вниз-вправо
-      { dx: 1, dy: -1 }, // вверх-вправо
-      { dx: -1, dy: 1 }, // вниз-влево
-      { dx: -1, dy: -1 }, // вверх-влево
+      { dx: 1, dy: 1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: 1 },
+      { dx: -1, dy: -1 },
     ];
 
     directions.forEach((dir) => {
@@ -244,6 +244,7 @@ class King extends Piece {
 class Board {
   constructor() {
     this.grid = this.initializeBoard();
+    this.capturedPieces = { white: [], black: [] };
   }
 
   initializeBoard() {
@@ -312,13 +313,66 @@ class Board {
       }
     }
     this.renderLabels();
+    this.renderCapturedPieces();
   }
 
-  movePiece(from, to) {
-    this.grid[to.y][to.x] = this.grid[from.y][from.x];
+  movePiece(from, to, promoteTo = null) {
+    const capturedPiece = this.grid[to.y][to.x];
+    if (capturedPiece) {
+      this.capturedPieces[capturedPiece.color === "white" ? "black" : "white"].push(
+        capturedPiece
+      );
+      if (capturedPiece.type === "king") {
+        game.handleGameOver(capturedPiece.color === "white" ? "black" : "white");
+      }
+    }
+
+    const piece = this.grid[from.y][from.x];
+    this.grid[to.y][to.x] = promoteTo || this.grid[from.y][from.x];
     this.grid[to.y][to.x].position = { x: to.x, y: to.y };
     this.grid[from.y][from.x] = null;
+
+    if (
+      piece.type === "pawn" &&
+      ((piece.color === "white" && to.y === 0) ||
+       (piece.color === "black" && to.y === 7)) &&
+      !promoteTo
+    ) {
+      this.promotePawn(piece.color, to);
+      return false; // Ход не завершен, ждем превращения
+    }
+
     this.render();
+    return true; // Ход завершен
+  }
+
+  promotePawn(color, position) {
+    const modal = document.getElementById("promotion-modal");
+    const piecesDiv = document.getElementById("promotion-pieces");
+    piecesDiv.innerHTML = "";
+
+    const availablePieces = ["queen", "rook", "bishop", "knight"];
+    availablePieces.forEach((type) => {
+      const piece = new (eval(type.charAt(0).toUpperCase() + type.slice(1)))(
+        color,
+        position
+      );
+      const pieceDiv = document.createElement("span");
+      pieceDiv.className = "promotion-modal__piece";
+      pieceDiv.textContent = piece.getSymbol();
+      pieceDiv.addEventListener("click", () => {
+        this.grid[position.y][position.x] = new (eval(type.charAt(0).toUpperCase() + type.slice(1)))(
+          color,
+          position
+        );
+        this.render();
+        modal.classList.remove("modal--visible");
+        game.completeMove();
+      });
+      piecesDiv.appendChild(pieceDiv);
+    });
+
+    modal.classList.add("modal--visible");
   }
 
   showPossibleMoves(piece) {
@@ -353,12 +407,34 @@ class Board {
       colsDiv.appendChild(colLabel);
     }
   }
+
+  renderCapturedPieces() {
+    const whiteCapturedDiv = document.getElementById("white-captured");
+    const blackCapturedDiv = document.getElementById("black-captured");
+    whiteCapturedDiv.innerHTML = "";
+    blackCapturedDiv.innerHTML = "";
+
+    this.capturedPieces.white.forEach((piece) => {
+      const pieceDiv = document.createElement("span");
+      pieceDiv.className = "captured-pieces__piece";
+      pieceDiv.textContent = piece.getSymbol();
+      whiteCapturedDiv.appendChild(pieceDiv);
+    });
+
+    this.capturedPieces.black.forEach((piece) => {
+      const pieceDiv = document.createElement("span");
+      pieceDiv.className = "captured-pieces__piece";
+      pieceDiv.textContent = piece.getSymbol();
+      blackCapturedDiv.appendChild(pieceDiv);
+    });
+  }
 }
 
 class Game {
   constructor() {
     this.board = new Board();
     this.currentPlayer = "white";
+    this.pendingMove = null;
   }
 
   handleDrop(e, to) {
@@ -373,11 +449,33 @@ class Game {
     );
 
     if (isValidMove) {
-      this.board.movePiece(from, to);
-      this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
-      document.getElementById("current-player").textContent =
-        this.currentPlayer;
+      this.pendingMove = { from, to };
+      const moveCompleted = this.board.movePiece(from, to);
+      if (moveCompleted) {
+        this.completeMove();
+      }
     }
+  }
+
+  completeMove() {
+    this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
+    document.getElementById("current-player").textContent = this.currentPlayer;
+    this.pendingMove = null;
+  }
+
+  handleGameOver(winner) {
+    const modal = document.getElementById("game-over-modal");
+    const modalTitle = document.getElementById("modal-title");
+    modalTitle.textContent = `Победили ${winner === "white" ? "белые" : "черные"}!`;
+    modal.classList.add("modal--visible");
+
+    document.getElementById("new-game").addEventListener("click", () => {
+      this.board = new Board();
+      this.currentPlayer = "white";
+      document.getElementById("current-player").textContent = "white";
+      this.board.render();
+      modal.classList.remove("modal--visible");
+    });
   }
 
   start() {

@@ -8,14 +8,36 @@
   </head>
   <body class="page">
     <h1 class="page__title">Шахматы онлайн</h1>
-    <div class="chess-board-container">
-      <div class="chess-board" id="board"></div>
-      <div class="chess-board__labels chess-board__labels--rows"></div>
-      <div class="chess-board__labels chess-board__labels--cols"></div>
+    <div class="game-container">
+      <div class="captured-pieces">
+        <div class="captured-pieces__title">Съедено белыми</div>
+        <div class="captured-pieces__list" id="white-captured"></div>
+      </div>
+      <div class="chess-board-container">
+        <div class="chess-board" id="board"></div>
+        <div class="chess-board__labels chess-board__labels--rows"></div>
+        <div class="chess-board__labels chess-board__labels--cols"></div>
+      </div>
+      <div class="captured-pieces">
+        <div class="captured-pieces__title">Съедено черными</div>
+        <div class="captured-pieces__list" id="black-captured"></div>
+      </div>
     </div>
     <p class="page__status">
       Ход: <span class="page__current-player" id="current-player">white</span>
     </p>
+    <div class="modal" id="game-over-modal">
+      <div class="modal__content">
+        <div class="modal__title" id="modal-title"></div>
+        <button class="modal__button" id="new-game">Новая игра</button>
+      </div>
+    </div>
+    <div class="modal" id="promotion-modal">
+      <div class="modal__content">
+        <div class="modal__title">Выберите фигуру</div>
+        <div class="promotion-modal__pieces" id="promotion-pieces"></div>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
