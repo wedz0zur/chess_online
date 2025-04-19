@@ -339,11 +339,11 @@ class Board {
       !promoteTo
     ) {
       this.promotePawn(piece.color, to);
-      return false; // Ход не завершен, ждем превращения
+      return false; 
     }
 
     this.render();
-    return true; // Ход завершен
+    return true; 
   }
 
   promotePawn(color, position) {
